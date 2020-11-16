@@ -12,7 +12,7 @@ enum Colour { Black, Gray, White,Purple,None }                               //�
 
     constructor() public {                                             //конструктор,задает значение по умолчанию  
     	col.colour = Colour.None;
-								}
+    }
    
 
     function what_colour(Colour _colour) public returns (Colour) {                     //сеттер,задает цвет
