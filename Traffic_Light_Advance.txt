@@ -1,0 +1,40 @@
+pragma solidity 0.5.10;
+
+contract Light { 
+    
+enum Colour { Black, Gray, White,Purple,None }                               //перечисление цветов
+
+     struct traffic {                                                           //структура, характеризуется цветом  
+        Colour colour;
+                    }
+                    
+    traffic public col;                                                     //объект структуры
+
+    constructor() public {                                             //конструктор,задает значение по умолчанию  
+    	col.colour = Colour.None;
+								}
+   
+
+    function what_colour(Colour _colour) public returns (Colour) {                     //сеттер,задает цвет
+     col.colour = _colour;
+        return (col.colour);
+    }
+
+
+    function getcol_inner(Colour _colour) internal pure returns (string memory) {                   // ищет соответствие и возвращает строку
+        
+     if (Colour.Black == _colour) return "Black";
+     if (Colour.Gray == _colour) return "Gray";
+     if (Colour.White == _colour) return "White";
+     if (Colour.Purple == _colour) return "Purple";
+     if (Colour.None == _colour) return "None";
+     
+
+}
+
+    function getcol() public view returns (string memory) {       //  создаем локал переменную типа Colour,записываем в нее индекс заданного цвета в перечислении; вывод цвета         
+     Colour _object = col.colour;                                                                         
+     return getcol_inner(_object);
+}
+
+}
