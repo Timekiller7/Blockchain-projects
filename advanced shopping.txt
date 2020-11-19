@@ -1,0 +1,72 @@
+pragma solidity 0.5.1;
+
+contract Computer_Shop {
+    
+uint256 startTime=1605225600;
+    
+    modifier plsOpenOnlyWhen(){
+        require(block.timestamp>=startTime);
+        _;
+    }
+
+    New_Computer[] public new_c;
+
+    struct New_Computer {
+    string operatingSystem;
+    string version;
+    int releaseDate;
+    }
+
+
+    function addComputer (string memory operatingSystem, string memory version, int releaseDate) public plsOpenOnlyWhen{
+        new_c.push(New_Computer(operatingSystem, version,releaseDate));
+        }
+
+mapping (uint=>Trade) public trade;
+
+    uint256 public trades=0;
+
+    struct Trade {
+    int nubmerOfComputer;
+    int moneyFromTrade;
+    bool computerIsNew;
+    }
+
+   function addTrade (int nubmerOfComputer,int moneyFromTrade,bool computerIsNew) public {
+    trade[trades]=Trade(nubmerOfComputer, moneyFromTrade,computerIsNew);
+    trades+=1;    
+    }
+
+uint256 public vacancyNeeded=0;
+    mapping(uint=>Vacancy) public vacancy;
+    address owner;
+    modifier onlyOwner(){
+    require (msg.sender==owner);
+    _;
+    }
+
+    struct Vacancy{
+    string whatJob;
+    int requiredExperience;
+    bool urgently;
+    }
+
+    constructor() public {                     //по умолчанию адрес владельца устанавливается
+    owner=msg.sender;
+    }
+
+    function addVacancy(string memory whatJob, int requiredExperience,uint8 _employeesNow) public onlyOwner {
+    bool _urgently;
+    if (_employeesNow<25){
+         _urgently=true;
+    }   
+    else _urgently=false;
+    
+    vacancy[vacancyNeeded]=Vacancy(whatJob, requiredExperience, _urgently);
+    vacancyNeeded+=1;
+    }
+
+}    
+   
+    
+    
