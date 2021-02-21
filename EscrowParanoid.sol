@@ -1,6 +1,6 @@
 pragma solidity ^0.6.0;
 
-contract Company {
+contract Money {
     
 address payable public seller; 
     
@@ -23,7 +23,13 @@ mapping (address=>uint256) public smth;
         _; 
     }
     
-    
+    function getArray(address buyer) external view returns (uint256,uint256,bool) {
+    return (date[buyer].time,date[buyer].sum,date[buyer].buyerOK);
+}
+    function getSMTH(address buyer) external view returns (uint256) {
+    return smth[buyer];
+}
+
     function addUser(uint256 stamp, address buyer) onlySeller public {  // №1 добавление пользователя - только единожды за счет мэппинга smth
         if (smth[buyer]==0) {
         date[buyer]=Date(now+stamp*1 minutes, 0, false);
@@ -40,7 +46,7 @@ mapping (address=>uint256) public smth;
     }
     
     
-    function ConfPay() public payable  {                        // №2 перевод на контракт+метка в мэппинг,обнуление согласия продавца
+    function Payment() public payable  {                        // №2 перевод на контракт+метка в мэппинг,обнуление согласия покупателя
           require(
             msg.value < (msg.sender).balance,
             "Not enough Ether provided."
@@ -49,7 +55,7 @@ mapping (address=>uint256) public smth;
         date[msg.sender].buyerOK=false;
     }
     
-    function changeStamp(uint256 stamp, address buyer) onlySeller public {    //изменение временного штампа - согласие 2 сторон
+    function changeStamp(uint256 stamp, address buyer) onlySeller public {    //изменение временного штампа - необходимо согласие 2 сторон 
         if ((smth[buyer]==stamp)&&((date[buyer].buyerOK)==true)&&(stamp!=1)){
             date[buyer].time+=stamp*1 minutes;
             smth[buyer]=1;
