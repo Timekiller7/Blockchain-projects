@@ -1,11 +1,78 @@
 pragma solidity ^0.8.3;
 
+contract VerifiedCompanies{
+    address owner;
+    constructor(){
+      owner=msg.sender;
+    }
+
+    modifier onlyOwner(){ 
+           require(msg.sender == owner);  
+           _; 
+    } 
+  
+    mapping (address=>bool) public sellers;
+
+    function addVerifiedCompany(address ofCompany) public onlyOwner{
+      sellers[ofCompany]=true;
+    }
+}
+
+contract AllCompanies{
+
+  mapping (string=>address) public comp;
+
+}
+
+contract Factory is VerifiedCompanies,AllCompanies{
+
+    uint256 public Companies;
+  
+    modifier onlyVerified(){ 
+            require(sellers[msg.sender]==true);  
+            _; 
+    } 
+  
+    function create_Company(string memory name) public onlyVerified returns(Company newContract)
+      {
+        Company c = new Company(name);   
+        comp[name]=address(c);
+        Companies+=1;
+       return c;
+     }
+}
+
+
+contract Company{
+
+    address owner;                             
+    string public company_name;
+    mapping (uint256=>address) public orders;    //orderId->address
+    
+    constructor(string memory name) public{
+      owner=msg.sender;
+      company_name=name;
+    }
+
+    modifier onlyOwner(){ 
+        require(msg.sender == owner);  
+        _; 
+    } 
+  
+    function create_Order(uint256 id,address payable buyer, uint256 stamp) public onlyOwner returns(Order newContract)
+  {
+    Order c = new Order(buyer,stamp);
+    orders[id]=address(c);
+    return c;
+  }
+}
+
 contract Order {
     
 address payable public seller; 
 address payable public buyer; 
 
-uint256 public sum=0;                                  //защита??? - будет ли отображ в боте
+uint256 public allSum=0;                         //- Сумма по заказу защита??? - будет ли отображ в боте 
 uint256 public time;
 uint256 public changeTime=0;
 
@@ -45,43 +112,61 @@ function pay_to_Contract() onlyBuyer public payable{
         require(msg.value < (msg.sender).balance,
             "Not enough Ether provided."
         ); 
-        sum+=msg.value;
+        allSum+=msg.value;
     } 
     
 
-function deliver_from_Contract_to_Seller() onlyBS private{   //сделать bool all от покупателя?
-          require(sum>0,                                                 // 1=>все, 0=>какие-то% от суммы
+function deliver_from_Contract_to_Seller_All() onlyBS private{   
+          require(address(this).balance>0,                                                 
             "Not enough Ether provided."
         );
+        if(msg.sender==buyer){
+           seller.transfer(address(this).balance); 
+        }
         
-        seller.transfer(address(this).balance); 
-        
-          if (block.timestamp>(time)){
+        else{
+
+          if (block.timestamp>(time + 10 days)){
               seller.transfer(address(this).balance); 
-              sum=0;
           }
+
           else if ((buyerOK)==true){
           seller.transfer(address(this).balance); 
-          sum=0;
           buyerOK=false;
           }
+
           else {
           revert("No permission or impossible amount.");
-          }
+          }  
+
+        }
+          
+    } 
+
+function deliver_from_Contract_to_Seller_NotAll(uint256 percent) onlyBuyer private{   
+          require(address(this).balance>0,                                                 
+            "Not enough Ether provided."
+        );
+          uint summ=(address(this).balance)*percent/100;
+          seller.transfer(summ); 
+
     } 
     
 
 function return_payment() private { 
-       require(sum>0,
+   uint bal=address(this).balance;
+
+       require(bal>0,
             "Not enough Ether provided."
         );
+
           if (msg.sender==seller){
-              buyer.transfer(address(this).balance);
-              sum=0;
+              buyer.transfer(bal);
+              allSum-=bal;
         }
           else if (block.timestamp>(time+30 days)){
-              buyer.transfer(address(this).balance);
-              sum=0;
+              buyer.transfer(bal);
+              allSum-=bal;
           }
     }  
     
@@ -106,3 +191,5 @@ function kill() onlySeller private {
     }
 
 }
+
+
