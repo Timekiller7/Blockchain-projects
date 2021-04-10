@@ -1,4 +1,4 @@
-pragma solidity ^0.8.3;
+pragma solidity 0.8.3;
 
 contract VerifiedCompanies{
     address owner;
@@ -11,76 +11,88 @@ contract VerifiedCompanies{
            _; 
     } 
   
-    mapping (address=>bool) public sellers;
+    mapping (address=>bool) verifiedSellers;
 
     function addVerifiedCompany(address ofCompany) public onlyOwner{
-      sellers[ofCompany]=true;
+      verifiedSellers[ofCompany]=true;
     }
+    
+    function deleteVerifiedCompany(address ofCompany) public onlyOwner{
+      verifiedSellers[ofCompany]=false;
+    }
+
+    function IsCompanyVerified(address ofCompany) external view returns(bool isV){
+     return(verifiedSellers[ofCompany]);
+    }
+
+
 }
 
-contract AllCompanies{
-
-  mapping (string=>address) public comp;
-
-}
-
-contract Factory is VerifiedCompanies,AllCompanies{
+contract Factory is VerifiedCompanies{
 
     uint256 public Companies;
-  
+    event CompanyCreated(address indexed owner, string name);
+
     modifier onlyVerified(){ 
-            require(sellers[msg.sender]==true);  
+            require(verifiedSellers[msg.sender]==true);  
             _; 
     } 
   
     function create_Company(string memory name) public onlyVerified returns(Company newContract)
       {
-        Company c = new Company(name);   
-        comp[name]=address(c);
+        Company c = new Company(name, msg.sender, address(this));
+        emit CompanyCreated(msg.sender, name); 
         Companies+=1;
-       return c;
+        return c;
      }
+
 }
 
+contract Company {
 
-contract Company{
-
-    address owner;                             
+    address owner;
+    address factory;
     string public company_name;
-    mapping (uint256=>address) public orders;    //orderId->address
     
-    constructor(string memory name) public{
-      owner=msg.sender;
+    event NewOrder(address indexed buyer, uint256 deadline);
+    
+    constructor(string memory name, address _owner, address faactory) public{
+      owner=_owner;
       company_name=name;
+      factory=faactory;
     }
 
     modifier onlyOwner(){ 
-        require(msg.sender == owner);  
+        require(msg.sender == owner);        
         _; 
     } 
   
-    function create_Order(uint256 id,address payable buyer, uint256 stamp) public onlyOwner returns(Order newContract)
-  {
-    Order c = new Order(buyer,stamp);
-    orders[id]=address(c);
-    return c;
-  }
+    function create_Order(address payable buyer, uint256 stamp) public onlyOwner returns(Order newContract)
+  { 
+    VerifiedCompanies ver=VerifiedCompanies(factory);
+    require((ver.IsCompanyVerified(msg.sender)==true),"Your company isn't verified");
+   emit NewOrder(buyer, block.timestamp + stamp*1 minutes);
+    Order c = new Order(buyer,stamp, msg.sender);
+    return c;       
+    }
+
 }
+  
 
 contract Order {
     
 address payable public seller; 
 address payable public buyer; 
 
-uint256 public allSum=0;                         //- Сумма по заказу защита??? - будет ли отображ в боте 
+uint256 public allSum=0;                         //no public? 
 uint256 public time;
 uint256 public changeTime=0;
 
 bool buyerOK=false;
 
-constructor(address payable _buyer, uint256 stamp) public{ 
+constructor(address payable _buyer, uint256 stamp,address _seller) public{ 
         buyer = _buyer; 
-        seller = payable(msg.sender);
+        seller = payable(seller);
         time=(block.timestamp + stamp*1 minutes);       //+ 7 days  - потом дни сделать везде 
     } 
     
@@ -191,5 +203,8 @@ function kill() onlySeller private {
     }
 
 }
+
+
+
 
 
