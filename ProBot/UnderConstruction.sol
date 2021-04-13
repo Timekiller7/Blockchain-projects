@@ -25,7 +25,6 @@ contract VerifiedCompanies{
      return(verifiedSellers[ofCompany]);
     }
 
-
 }
 
 contract Factory is VerifiedCompanies{
@@ -56,10 +55,10 @@ contract Company {
     
     event NewOrder(address indexed buyer, uint256 deadline);
     
-    constructor(string memory name, address _owner, address faactory) public{
+    constructor(string memory name, address _owner, address _factory) public{
       owner=_owner;
       company_name=name;
-      factory=faactory;
+      factory=_factory;
     }
 
     modifier onlyOwner(){ 
@@ -71,8 +70,9 @@ contract Company {
   { 
     VerifiedCompanies ver=VerifiedCompanies(factory);
     require((ver.IsCompanyVerified(msg.sender)==true),"Your company isn't verified");
-   emit NewOrder(buyer, block.timestamp + stamp*1 minutes);
-    Order c = new Order(buyer,stamp, msg.sender);
+    uint256 deadline=block.timestamp + stamp*1 minutes;
+    emit NewOrder(buyer, deadline);
+    Order c = new Order(buyer,deadline, msg.sender);
     return c;       
     }
 
@@ -84,16 +84,16 @@ contract Order {
 address payable public seller; 
 address payable public buyer; 
 
-uint256 public allSum=0;                         //no public? 
-uint256 public time;
-uint256 public changeTime=0;
+uint256 public allSum;                          
+uint256 public Deadline;
+uint256 public changeDeadline;
 
-bool buyerOK=false;
+bool buyerOK;
 
-constructor(address payable _buyer, uint256 stamp,address _seller) public{ 
+constructor(address payable _buyer, uint256 deadline, address _seller) public{ 
         buyer = _buyer; 
-        seller = payable(seller);
-        time=(block.timestamp + stamp*1 minutes);       //+ 7 days  - потом дни сделать везде 
+        seller = payable(_seller);
+        Deadline=deadline;        
     } 
     
 //////////////Модификаторы//////////////
@@ -116,11 +116,11 @@ constructor(address payable _buyer, uint256 stamp,address _seller) public{
 
 //////////////Основные функции//////////////
 
-function setOK(bool bOk) private onlyBuyer {               // для соглашений - переправки селлеру и изменения временной метки
+function _3setOK(bool bOk) public onlyBuyer {               // для соглашений - переправки селлеру и изменения временной метки
         buyerOK=bOk;
     }
     
-function pay_to_Contract() onlyBuyer public payable{ 
+function _1pay_to_Contract() onlyBuyer public payable{ 
         require(msg.value < (msg.sender).balance,
             "Not enough Ether provided."
         ); 
@@ -128,9 +128,9 @@ function pay_to_Contract() onlyBuyer public payable{
     } 
     
 
-function deliver_from_Contract_to_Seller_All() onlyBS private{   
+function _2deliver_from_Contract_to_Seller_All() onlyBS public{   
           require(address(this).balance>0,                                                 
-            "Not enough Ether provided."
+            "Not enough ether provided."
         );
         if(msg.sender==buyer){
            seller.transfer(address(this).balance); 
@@ -138,7 +138,7 @@ function deliver_from_Contract_to_Seller_All() onlyBS private{
         
         else{
 
-          if (block.timestamp>(time + 10 days)){
+          if (block.timestamp>(Deadline + 5 minutes)){
               seller.transfer(address(this).balance); 
           }
 
@@ -148,24 +148,44 @@ function deliver_from_Contract_to_Seller_All() onlyBS private{
           }
 
           else {
-          revert("No permission or impossible amount.");
+          revert("No permission to transfer ether from contract.");
           }  
 
         }
           
     } 
 
-function deliver_from_Contract_to_Seller_NotAll(uint256 percent) onlyBuyer private{   
+function _2deliver_from_Contract_to_Seller_Percentage(uint256 percent) onlyBS public{   
           require(address(this).balance>0,                                                 
             "Not enough Ether provided."
         );
-          uint summ=(address(this).balance)*percent/100;
+        uint summ=(address(this).balance)*percent/100;
+        if(msg.sender==buyer){
           seller.transfer(summ); 
+        }
+        
+        else{
 
+          if (block.timestamp>(Deadline + 5 minutes)){
+              seller.transfer(summ); 
+          }
+
+          else if ((buyerOK)==true){
+          seller.transfer(summ); 
+          buyerOK=false;
+          }
+
+          else {
+          revert("No permission to transfer ether from contract.");
+          }  
+
+        }
+          
     } 
+        
     
 
-function return_payment() private { 
+function _4return_payment() public { 
    uint bal=address(this).balance;
 
        require(bal>0,
@@ -176,7 +196,7 @@ function return_payment() private {
               buyer.transfer(bal);
               allSum-=bal;
         }
-          else if (block.timestamp>(time+30 days)){
+          else if (block.timestamp>(Deadline+14 days)){
               buyer.transfer(bal);
               allSum-=bal;
           }
@@ -184,27 +204,23 @@ function return_payment() private {
     
 //////////////Дополнительные//////////////
 
-function change(uint256 newStamp) private onlyBuyer {               // для изменения переменной
-        changeTime=newStamp;
+function _5set_Deadline_Request(uint256 extraDays) public onlyBuyer {               // для изменения переменной
+        changeDeadline=extraDays;
     }   
 
-function changeStamp(uint256 howMuchDaysNeeded) onlySeller private {    //изменение временного штампа - необходимо согласие 2 сторон 
-        if ((changeTime==howMuchDaysNeeded)&&(buyerOK==true)&&(changeTime!=0)){
-            time+=changeTime*1 minutes;
-            changeTime=0;
+function _6changeDeadline(uint256 extraDays) onlySeller public {    //изменение временного штампа - необходимо согласие 2 сторон 
+        if ((changeDeadline==extraDays)&&(buyerOK==true)&&(changeDeadline!=0)){
+            Deadline+=changeDeadline*1 days;
+            changeDeadline=0;
             buyerOK=false;
         }
     }
     
-function kill() onlySeller private {                                            
+function _7contract_kill() onlySeller public{                                            
             if ((address(this).balance)==0){
                 selfdestruct(seller);
             }
     }
 
 }
-
-
-
-
 
