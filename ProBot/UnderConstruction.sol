@@ -30,7 +30,7 @@ contract VerifiedCompanies{
 contract Factory is VerifiedCompanies{
 
     uint256 public Companies;
-    event CompanyCreated(address indexed owner, string name);
+    event CompanyCreated(string indexed name, address company, string sameName);
 
     modifier onlyVerified(){ 
             require(verifiedSellers[msg.sender]==true);  
@@ -40,7 +40,7 @@ contract Factory is VerifiedCompanies{
     function create_Company(string memory name) public onlyVerified returns(Company newContract)
       {
         Company c = new Company(name, msg.sender, address(this));
-        emit CompanyCreated(msg.sender, name); 
+        emit CompanyCreated(name, address(c),name); 
         Companies+=1;
         return c;
      }
@@ -53,7 +53,7 @@ contract Company {
     address factory;
     string public company_name;
     
-    event NewOrder(address indexed buyer, uint256 deadline);
+    event NewOrder(address indexed buyer, address orderContract);
     
     constructor(string memory name, address _owner, address _factory) public{
       owner=_owner;
@@ -71,8 +71,8 @@ contract Company {
     VerifiedCompanies ver=VerifiedCompanies(factory);
     require((ver.IsCompanyVerified(msg.sender)==true),"Your company isn't verified");
     uint256 deadline=block.timestamp + stamp*1 minutes;
-    emit NewOrder(buyer, deadline);
     Order c = new Order(buyer,deadline, msg.sender);
+    emit NewOrder(buyer, address(c));
     return c;       
     }
 
@@ -138,7 +138,7 @@ function _2deliver_from_Contract_to_Seller_All() onlyBS public{
         
         else{
 
-          if (block.timestamp>(Deadline + 5 minutes)){
+          if (block.timestamp>(Deadline + 7 minutes)){
               seller.transfer(address(this).balance); 
           }
 
@@ -166,7 +166,7 @@ function _2deliver_from_Contract_to_Seller_Percentage(uint256 percent) onlyBS pu
         
         else{
 
-          if (block.timestamp>(Deadline + 5 minutes)){
+          if (block.timestamp>(Deadline + 7 minutes)){
               seller.transfer(summ); 
           }
 
@@ -196,7 +196,7 @@ function _4return_payment() public {
               buyer.transfer(bal);
               allSum-=bal;
         }
-          else if (block.timestamp>(Deadline+14 days)){
+          else if (block.timestamp>(Deadline+14 minutes)){
               buyer.transfer(bal);
               allSum-=bal;
           }
@@ -210,7 +210,7 @@ function _5set_Deadline_Request(uint256 extraDays) public onlyBuyer {           
 
 function _6changeDeadline(uint256 extraDays) onlySeller public {    //изменение временного штампа - необходимо согласие 2 сторон 
         if ((changeDeadline==extraDays)&&(buyerOK==true)&&(changeDeadline!=0)){
-            Deadline+=changeDeadline*1 days;
+            Deadline+=changeDeadline*1 minutes;
             changeDeadline=0;
             buyerOK=false;
         }
