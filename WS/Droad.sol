@@ -134,7 +134,7 @@ function payToBank() external onlyStrah() payable {
     bank.transfer(msg.value);  
 }
  
-function oformDTP(uint number) public onlyDPS(msg.sender){                           //оформл страховки
+function oformDTP(uint number) public onlyDPS(msg.sender){                           //оформл дтп=>выплата страховки
  per[number].kolDTP+=1;
  if(strahCompany.balance<uint(per2[msg.sender].strahVznos)*10){
      revert("Not enough money to form DTP");
