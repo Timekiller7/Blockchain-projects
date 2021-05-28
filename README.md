@@ -1,2 +1,2 @@
 # Solidity-Elective
-Soldidity practiсe: tasks from worldskills+projects+studying
+Solidity practiсe: tasks from worldskills+projects+studying
