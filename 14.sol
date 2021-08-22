@@ -28,8 +28,8 @@ contract Charity {
 }
 
 contract Hacker {
-    Charity private victim;
     address payable private owner;
+    Charity private victim;
 
     constructor(address payable _victim) {
         victim = Charity(_victim);
@@ -69,8 +69,8 @@ contract Hacker {
 
 Методы защиты контракта Charity:
 
-1.1 Лучше всего изменять переменные до функций call,send,transfer.
-  Если есть transfer/send, то функция getEther() не сможет вызываться рекурсивно, 
+1.1 Лучше всего изменять важные переменные до функций call,send,transfer.
+  Однако если есть transfer/send, то функция getEther() не сможет вызываться рекурсивно, 
   т.к. на transfer/send выделяется мало газа. 
   function getEther() external {  
       require(!caller[msg.sender],"Sorry, we can't transfer you another 2 ether.");
@@ -85,8 +85,8 @@ contract Hacker {
   }
 
 2. С помощью изменения переменной до call. Или же можно сделать call с контролем газа 
-                                                         как transfer/send.
-  modifier limitReceive(){
+                                                         как у transfer/send.
+  modifier limitReceive() {
       require(!caller[msg.sender],"Sorry, we can't transfer you another 2 ether.");
       _;
   }
@@ -99,11 +99,7 @@ contract Hacker {
 3. С универсальным модификатором из библиотеки.
 import 'https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol';
 contract Charity is ReentrancyGuard {
-    mapping(address => bool) private caller;
-    
-    receive() external payable {
-    }
-
+    ...
     function getEther() external nonReentrant {  
         if (!caller[msg.sender]){
             (bool success, ) = payable(msg.sender).call{value: 2 ether}("");
